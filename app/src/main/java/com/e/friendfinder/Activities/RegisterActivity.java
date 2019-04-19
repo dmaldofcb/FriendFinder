@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -18,7 +19,9 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+
 public class RegisterActivity extends AppCompatActivity {
+    private static final String TAG = "Check";
 
     private EditText userName;
     private EditText email;
@@ -33,6 +36,8 @@ public class RegisterActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "Calling Create RegisterActivity");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
@@ -43,12 +48,15 @@ public class RegisterActivity extends AppCompatActivity {
         register = (Button) findViewById(R.id.createReg);
         loadingBar = (ProgressBar) findViewById(R.id.progressBar);
         login = (Button) findViewById(R.id.loginReg);
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        updateUI(currentUser);
+
 
         mAuth = FirebaseAuth.getInstance();
 
+        if(mAuth.getCurrentUser() != null){
+            Log.d(TAG, "Calling Logged In RegisterActivity");
 
+            startActivity(new Intent(RegisterActivity.this,FriendMap.class));
+        }
 
         loadingBar.setVisibility(View.INVISIBLE);
 
@@ -89,18 +97,25 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if(currentUser != null){
-            startActivity(new Intent(RegisterActivity.this,FriendMap.class));
-        }
-    }
+//    @Override
+//    protected void onStart() {
+//        Log.d(TAG, "Calling Start RegisterActivity");
+//
+//        super.onStart();
+//        FirebaseUser currentUser = mAuth.getCurrentUser();
+//        if(currentUser != null){
+//            Log.d(TAG, "Calling Logged In RegisterActivity");
+//
+//            startActivity(new Intent(RegisterActivity.this,FriendMap.class));
+//        }
+//    }
 
 
     //handles user account creation for username and password
     private void createUserAccount(final String username, String mail, String password) {
+
+        Log.d(TAG, "Calling Create User RegisterActivity");
+
         mAuth.createUserWithEmailAndPassword(mail,password).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
@@ -123,7 +138,6 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
     }
-
 
 }
 

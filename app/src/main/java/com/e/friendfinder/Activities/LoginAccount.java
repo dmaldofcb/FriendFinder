@@ -19,7 +19,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class LoginAccount extends AppCompatActivity {
-    private static final String TAG = "MyActivity";
+    private static final String TAG = "Check";
 
     private EditText email;
     private EditText password;
@@ -27,19 +27,24 @@ public class LoginAccount extends AppCompatActivity {
     private ProgressBar loginBar;
     private FirebaseAuth mAuth;
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if(currentUser != null){
-            startActivity(new Intent(LoginAccount.this,FriendMap.class));
-        }
-    }
+//    @Override
+//    protected void onStart() {
+//        Log.d(TAG, "Calling Start LoginActivity");
+//
+//        super.onStart();
+//        FirebaseUser currentUser = mAuth.getCurrentUser();
+//        if(currentUser != null){
+//            Log.d(TAG, "Calling Logged In LoginActivity");
+//
+//            startActivity(new Intent(LoginAccount.this,FriendMap.class));
+//        }
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_account);
+        Log.d(TAG, "Calling onCreate LoginActivity");
 
         email = (EditText) findViewById(R.id.emailLogin);
         password = (EditText) findViewById(R.id.passwordLogin);
@@ -48,6 +53,12 @@ public class LoginAccount extends AppCompatActivity {
         loginBar.setVisibility(View.INVISIBLE);
 
         mAuth = FirebaseAuth.getInstance();
+
+        if(mAuth.getCurrentUser() != null){
+            Log.d(TAG, "Calling Logged In RegisterActivity");
+
+            startActivity(new Intent(LoginAccount.this,FriendMap.class));
+        }
 
         login.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -87,4 +98,6 @@ public class LoginAccount extends AppCompatActivity {
                     }
                 });
     }
+
+
 }
