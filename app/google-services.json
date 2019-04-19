@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1033126579111",
+    "firebase_url": "https://friendfinder-d155b.firebaseio.com",
+    "project_id": "friendfinder-d155b",
+    "storage_bucket": "friendfinder-d155b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033126579111:android:c2275cf3af0a7826",
+        "android_client_info": {
+          "package_name": "com.e.friendfinder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1033126579111-0eb443gl3ucbashkin4m9ld2b8p5epv4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.e.friendfinder",
+            "certificate_hash": "be78805cda0854db1cf5dd2a8df8f2da67b7b9d7"
+          }
+        },
+        {
+          "client_id": "1033126579111-ff4ospv2a3vti7q96m7df4ouglfqvsif.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBA37iZZ7ht78xW6KYgdwRX3oALScu9dY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1033126579111-ff4ospv2a3vti7q96m7df4ouglfqvsif.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
