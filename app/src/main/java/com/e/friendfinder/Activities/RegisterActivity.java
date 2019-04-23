@@ -18,6 +18,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 
 public class RegisterActivity extends AppCompatActivity {
@@ -27,12 +29,16 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText email;
     private EditText pass1;
     private EditText pass2;
+    private String lat = "latitude";
+    private String longi = "longitude";
     private Button login;
 
     private Button register;
     private ProgressBar loadingBar;
     private FirebaseAuth mAuth;
 
+    private FirebaseDatabase mfirebaseDatabase;
+    private DatabaseReference myRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +57,7 @@ public class RegisterActivity extends AppCompatActivity {
 
 
         mAuth = FirebaseAuth.getInstance();
+        mfirebaseDatabase = FirebaseDatabase.getInstance();
 
         if(mAuth.getCurrentUser() != null){
             Log.d(TAG, "Calling Logged In RegisterActivity");
@@ -97,19 +104,6 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-//    @Override
-//    protected void onStart() {
-//        Log.d(TAG, "Calling Start RegisterActivity");
-//
-//        super.onStart();
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        if(currentUser != null){
-//            Log.d(TAG, "Calling Logged In RegisterActivity");
-//
-//            startActivity(new Intent(RegisterActivity.this,FriendMap.class));
-//        }
-//    }
-
 
     //handles user account creation for username and password
     private void createUserAccount(final String username, String mail, String password) {
@@ -120,7 +114,13 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if (task.isSuccessful()){
+                    String userID = mAuth.getUid();
+                    myRef = mfirebaseDatabase.getReference().child(userID);
+                    myRef.child("username").setValue(username);
+                    myRef.child(lat).setValue(0.0);
+                    myRef.child(longi).setValue(0.0);
                     Toast.makeText(getApplicationContext(),"Account Created!",Toast.LENGTH_LONG).show();
+
                     Intent map = new Intent(RegisterActivity.this, FriendMap.class);
                     startActivity(map);
                     register.setVisibility(View.VISIBLE);

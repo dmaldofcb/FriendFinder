@@ -26,19 +26,7 @@ public class LoginAccount extends AppCompatActivity {
     private Button login;
     private ProgressBar loginBar;
     private FirebaseAuth mAuth;
-
-//    @Override
-//    protected void onStart() {
-//        Log.d(TAG, "Calling Start LoginActivity");
-//
-//        super.onStart();
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        if(currentUser != null){
-//            Log.d(TAG, "Calling Logged In LoginActivity");
-//
-//            startActivity(new Intent(LoginAccount.this,FriendMap.class));
-//        }
-//    }
+    private Button reg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +37,7 @@ public class LoginAccount extends AppCompatActivity {
         email = (EditText) findViewById(R.id.emailLogin);
         password = (EditText) findViewById(R.id.passwordLogin);
         login = (Button) findViewById(R.id.loginAccount);
+        reg = (Button) findViewById(R.id.regButton);
         loginBar = (ProgressBar) findViewById(R.id.progressBar3);
         loginBar.setVisibility(View.INVISIBLE);
 
@@ -72,8 +61,13 @@ public class LoginAccount extends AppCompatActivity {
                     loginBar.setVisibility(View.VISIBLE);
                     signIn(mail,passw);
                 }
+            }
+        });
 
-
+        reg.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(LoginAccount.this,RegisterActivity.class));
             }
         });
     }

@@ -5,11 +5,14 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -31,11 +34,18 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -44,12 +54,18 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mGoogleMap;
     private LatLng currentLoc;
+    private final double radius = 1609.34; //radius of drawn circle in meters, one mile
     private LocationRequest mLocationRequest;
     private Location mLastLocation;
     private Marker mCurrLocationMarker;
     private FusedLocationProviderClient mFusedLocationClient;
+    private FirebaseDatabase mfirebaseDatabase;
+    private FirebaseAuth mAuth;
+    private DatabaseReference myRef;
+    private DatabaseReference friendsRef;
 
-
+    private String lat = "latitude";
+    private String longi = "longitude";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +77,8 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         Log.d(TAG, "Calling Create FriendMap");
+        mAuth = FirebaseAuth.getInstance();
+        mfirebaseDatabase = FirebaseDatabase.getInstance();
 
 
     }
@@ -95,9 +113,7 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
         mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 //Location Permission already granted
                 mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
                 mGoogleMap.setMyLocationEnabled(true);
@@ -117,8 +133,11 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
         public void onLocationResult(LocationResult locationResult) {
             List<Location> locationList = locationResult.getLocations();
             if (locationList.size() > 0) {
+
                 //The last location in the list is the newest
                 Location location = locationList.get(locationList.size() - 1);
+//                LatLng oldLatlng = new LatLng(location.getLatitude(), location.getLongitude());
+//                drawCircle(oldLatlng);
 //                Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 mLastLocation = location;
                 if (mCurrLocationMarker != null) {
@@ -127,26 +146,71 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
 
                 //Place current location marker
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                updateDatabaseLocation(location);
+                getFriends();
                 MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(latLng);
-                markerOptions.title("Current Position");
+                markerOptions.title("You");
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
                 mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
-
                 //move map camera
-                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14));
+                drawCircle(latLng);
             }
         }
     };
 
+    private void getFriends() {
+        friendsRef = mfirebaseDatabase.getReference();
+        final String[] userID = new String[1];
+
+        friendsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Iterator<DataSnapshot> items = dataSnapshot.getChildren().iterator();
+                while (items.hasNext()){
+                    DataSnapshot item = items.next();
+                    userID[0] = dataSnapshot.getKey();
+                    String username = item.child("username").getValue().toString();
+                    Double locLat = (double) item.child(lat).getValue();
+                    Double locLong = (double) item.child(longi).getValue();
+                    Log.d(TAG, "User ID" + userID[0]);
+                    Log.d(TAG, "Username" + username);
+                    Log.d(TAG, "Latitude" + locLat.toString());
+                    Log.d(TAG, "Longitude" + locLong.toString());
+                    Log.d(TAG, "---------------------");
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+    }
+
+    private void updateDatabaseLocation(Location location) {
+        String userID = mAuth.getUid();
+        myRef = mfirebaseDatabase.getReference().child(userID);
+        myRef.child(lat).setValue(location.getLatitude());
+        myRef.child(longi).setValue(location.getLongitude());
+    }
+
+    //draw circle keeps will only friends within 1 mile are in the circle
+    private void drawCircle(LatLng latLng) {
+        CircleOptions circleOpt = new CircleOptions().center(latLng).radius(radius).strokeColor(Color.RED);
+       // circleOpt.strokeColor(255);
+        mGoogleMap.addCircle(circleOpt);
+    }
+
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private void checkLocationPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
             // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
 
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
@@ -158,9 +222,7 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 //Prompt the user once explanation has been shown
-                                ActivityCompat.requestPermissions(FriendMap.this,
-                                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                        MY_PERMISSIONS_REQUEST_LOCATION );
+                                ActivityCompat.requestPermissions(FriendMap.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION );
                             }
                         })
                         .create()
@@ -169,16 +231,13 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
 
             } else {
                 // No explanation needed, we can request the permission.
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION );
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION );
             }
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_LOCATION: {
                 // If request is cancelled, the result arrays are empty.
