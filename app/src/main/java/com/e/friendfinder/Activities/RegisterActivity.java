@@ -31,6 +31,7 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText pass2;
     private String lat = "latitude";
     private String longi = "longitude";
+    private String time = "timestamp";
     private Button login;
 
     private Button register;
@@ -56,9 +57,10 @@ public class RegisterActivity extends AppCompatActivity {
         login = (Button) findViewById(R.id.loginReg);
 
 
+
         mAuth = FirebaseAuth.getInstance();
         mfirebaseDatabase = FirebaseDatabase.getInstance();
-
+        myRef = mfirebaseDatabase.getReference().child("Users");
         if(mAuth.getCurrentUser() != null){
             Log.d(TAG, "Calling Logged In RegisterActivity");
 
@@ -87,6 +89,9 @@ public class RegisterActivity extends AppCompatActivity {
 
                 } else if (!password.equals(password2)) {
                     Toast.makeText(getApplicationContext(),"Passwords do not match",Toast.LENGTH_LONG).show();
+                    register.setVisibility(View.VISIBLE);
+                    login.setVisibility(View.VISIBLE);
+                    loadingBar.setVisibility(View.INVISIBLE);
                 } else {
                     //create user account
                     createUserAccount(username, mail,password);
@@ -115,10 +120,11 @@ public class RegisterActivity extends AppCompatActivity {
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if (task.isSuccessful()){
                     String userID = mAuth.getUid();
-                    myRef = mfirebaseDatabase.getReference().child(userID);
+                    myRef = mfirebaseDatabase.getReference().child("Users").child(userID);
                     myRef.child("username").setValue(username);
                     myRef.child(lat).setValue(0.0);
                     myRef.child(longi).setValue(0.0);
+                    myRef.child(time).setValue("0.0");
                     Toast.makeText(getApplicationContext(),"Account Created!",Toast.LENGTH_LONG).show();
 
                     Intent map = new Intent(RegisterActivity.this, FriendMap.class);

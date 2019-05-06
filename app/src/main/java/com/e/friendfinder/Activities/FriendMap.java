@@ -45,15 +45,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.util.Iterator;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import java.util.List;
 
 
 public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
     private static final String TAG = "Check";
+    private static final String TAG2 = "location";
 
     private GoogleMap mGoogleMap;
-    private LatLng currentLoc;
     private final double radius = 1609.34; //radius of drawn circle in meters, one mile
     private LocationRequest mLocationRequest;
     private Location mLastLocation;
@@ -62,8 +64,8 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
     private FirebaseDatabase mfirebaseDatabase;
     private FirebaseAuth mAuth;
     private DatabaseReference myRef;
-    private DatabaseReference friendsRef;
 
+    private String time = "timestamp";
     private String lat = "latitude";
     private String longi = "longitude";
     @Override
@@ -76,9 +78,79 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        Log.d(TAG, "Calling Create FriendMap");
+//        Log.d(TAG, "Calling Create FriendMap");
         mAuth = FirebaseAuth.getInstance();
         mfirebaseDatabase = FirebaseDatabase.getInstance();
+        myRef = mfirebaseDatabase.getReference().child("Users");
+
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        myRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()) {
+                    mGoogleMap.clear();
+                    for (DataSnapshot user : dataSnapshot.getChildren()) {
+                        String userID = user.getKey();
+
+                        String username = user.child("username").getValue(String.class);
+                        String timeStamp = user.child(time).getValue(String.class);
+                        Double lati = user.child(lat).getValue(Double.class);
+                        Double lon = user.child(longi).getValue(Double.class);
+
+                            if (mLastLocation != null && lati != null && lon != null) {
+                                LatLng friendLatLng = new LatLng(lati, lon);
+
+                                float[] results = new float[1];
+//                                Log.d(TAG2, "location Not NUll");
+
+                                Location.distanceBetween(mLastLocation.getLatitude(), mLastLocation.getLongitude(), lati, lon, results);
+                                float distanceInMeters = results[0];
+                                if (distanceInMeters <= radius) {
+//                                    Log.d(TAG2, "correct radius");
+
+                                    markFriends(friendLatLng, userID, username, timeStamp);
+                                }
+                            }
+
+
+//                            Log.d(TAG, "Username" + username);
+//                            Log.d(TAG, "Latitude" + lati.toString());
+//                            Log.d(TAG, "Longitude" + lon.toString());
+//                            Log.d(TAG, "---------------------");
+
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void markFriends(LatLng friendLatLng, String s, String username, String timeStamp) {
+        String currID = mAuth.getUid();
+
+        MarkerOptions friend = new MarkerOptions();
+        //mGoogleMap.clear();
+        friend.position(friendLatLng);
+        String userTime = username + " |" + timeStamp + "|";
+        friend.title(userTime);
+        if(currID.equals(s)){
+            friend.title("ME" + " |" + timeStamp + "|");
+            friend.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        }
+        mGoogleMap.addMarker(friend);
+        LatLng prev = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
+        drawCircle(prev);
+//        Log.d(TAG2, "DRAW");
 
 
     }
@@ -133,6 +205,7 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
         public void onLocationResult(LocationResult locationResult) {
             List<Location> locationList = locationResult.getLocations();
             if (locationList.size() > 0) {
+                Log.d(TAG, "Calling LocationCallback");
 
                 //The last location in the list is the newest
                 Location location = locationList.get(locationList.size() - 1);
@@ -147,7 +220,7 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
                 //Place current location marker
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 updateDatabaseLocation(location);
-                getFriends();
+//                getFriends();
                 MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(latLng);
                 markerOptions.title("You");
@@ -156,46 +229,30 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
                 //move map camera
                 mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14));
                 drawCircle(latLng);
+
             }
         }
     };
 
-    private void getFriends() {
-        friendsRef = mfirebaseDatabase.getReference();
-        final String[] userID = new String[1];
-
-        friendsRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                Iterator<DataSnapshot> items = dataSnapshot.getChildren().iterator();
-                while (items.hasNext()){
-                    DataSnapshot item = items.next();
-                    userID[0] = dataSnapshot.getKey();
-                    String username = item.child("username").getValue().toString();
-                    Double locLat = (double) item.child(lat).getValue();
-                    Double locLong = (double) item.child(longi).getValue();
-                    Log.d(TAG, "User ID" + userID[0]);
-                    Log.d(TAG, "Username" + username);
-                    Log.d(TAG, "Latitude" + locLat.toString());
-                    Log.d(TAG, "Longitude" + locLong.toString());
-                    Log.d(TAG, "---------------------");
-
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
-    }
 
     private void updateDatabaseLocation(Location location) {
         String userID = mAuth.getUid();
-        myRef = mfirebaseDatabase.getReference().child(userID);
-        myRef.child(lat).setValue(location.getLatitude());
-        myRef.child(longi).setValue(location.getLongitude());
+        DatabaseReference currRef;
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM-hh:mm:ss");
+        String currTime = simpleDateFormat.format(new Date());
+        Log.d(TAG2, "Current Timestamp: " + currTime);
+
+        currRef = mfirebaseDatabase.getReference().child("Users").child(userID);
+        currRef.child(lat).setValue(location.getLatitude());
+        currRef.child(longi).setValue(location.getLongitude());
+        currRef.child(time).setValue(currTime);
+//        Log.d(TAG, "Update MyLocation");
+//        Log.d(TAG, "User ID " + userID );
+//        Log.d(TAG, "Latitude " + Double.toString(location.getLatitude()));
+//        Log.d(TAG, "Longitude " + Double.toString(location.getLongitude()));
+//        Log.d(TAG, "---------------------");
+
     }
 
     //draw circle keeps will only friends within 1 mile are in the circle
@@ -279,7 +336,6 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
     public boolean onOptionsItemSelected(MenuItem item) {
         if(item.getItemId() == R.id.logButton){
             logout();
-
         }
 
         return super.onOptionsItemSelected(item);
@@ -289,6 +345,7 @@ public class FriendMap extends AppCompatActivity implements OnMapReadyCallback {
         FirebaseAuth.getInstance().signOut();
         Toast.makeText(this, "Logged out", Toast.LENGTH_LONG).show();
         Intent log = new Intent(FriendMap.this, LoginAccount.class);
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback);
         startActivity(log);
     }
 
